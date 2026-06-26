@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software Requirements Gathering - AI Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --success-color: #16a34a;
+            --warning-color: #ea580c;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --bg-white: #ffffff;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            height: 90vh;
+            max-height: 800px;
+            background: var(--bg-white);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: none;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .header p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .header {
+            position: relative;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: var(--bg-light);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: var(--bg-light);
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-light);
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 0.5rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 85%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            font-size: 0.95rem;
+        }
+
+        .message.ai .message-content {
+            background: var(--bg-white);
+            color: var(--text-dark);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .message.user .message-content {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 12px;
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-light);
+            animation: bounce 1.4s infinite;
+        }
+
+        .loading-dots span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                opacity: 0.3;
+                transform: translateY(0);
+            }
+            40% {
+                opacity: 1;
+                transform: translateY(-8px);
+            }
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .option-btn {
+            background: var(--bg-white);
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateX(4px);
+            box-shadow: var(--shadow);
+        }
+
+        .option-btn:active {
+            transform: translateX(4px) scale(0.98);
+        }
+
+        .report-section {
+            background: var(--bg-white);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+            margin: 1rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        .report-section h3 {
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .report-section p,
+        .report-section ul {
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-section ul {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .report-section li {
+            margin-bottom: 0.5rem;
+        }
+
+        .bottom-section {
+            padding: 1.5rem;
+            background: var(--bg-white);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+        }
+
+        button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: var(--text-light);
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.6;
+        }
+
+        .api-key-notice {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .api-key-notice strong {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            border: 1px solid #86efac;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                max-height: 100vh;
+                border-radius: 0;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+            }
+
+            .message-content {
+                max-width: 90%;
+                font-size: 0.9rem;
+            }
+
+            .report-section {
+                padding: 1rem;
+            }
+
+            .bottom-section {
+                flex-direction: column;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            input[type="text"] {
+                width: 100%;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            background: var(--success-color);
+        }
+
+        .export-btn:hover {
+            background: #15803d;
+        }
+
+        .question-counter {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💼 Requirements Analyst</h1>
+            <p>AI-Powered Software Requirements Gathering</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="api-key-notice">
+                <strong>⚠️ API Key Required:</strong>
+                Please set your OpenAI API key in the code (search for "YOUR_API_KEY_HERE") before using this tool.
+                Get your key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>
+            </div>
+        </div>
+
+        <div class="bottom-section">
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="userInput"
+                    placeholder="Select an option or type your response..."
+                    disabled
+                />
+                <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== CONFIGURATION ==========
+        const OPENAI_API_KEY = 'YOUR_API_KEY_HERE';
+        const OPENAI_MODEL = 'gpt-4o-mini';
+        const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+
+        // ========== STATE ==========
+        let currentQuestion = 0;
+        let conversationHistory = [];
+        let userResponses = [];
+        let isWaitingForResponse = false;
+
+        const QUESTIONS = [
+            {
+                question: "What is the primary purpose of the software you want to build?",
+                options: [
+                    "E-commerce platform",
+                    "Content management system",
+                    "Business process automation",
+                    "Data analytics dashboard"
+                ]
+            },
+            {
+                question: "Who are the main end users of this software?",
+                options: [
+                    "Individual consumers/public users",
+                    "Business employees/internal team",
+                    "Customers of your business",
+                    "Government/regulatory bodies"
+                ]
+            },
+            {
+                question: "How many users do you expect in the first year?",
+                options: [
+                    "Fewer than 100 users",
+                    "100-1,000 users",
+                    "1,000-100,000 users",
+                    "More than 100,000 users"
+                ]
+            },
+            {
+                question: "What is your budget range for this project?",
+                options: [
+                    "Less than $10,000",
+                    "$10,000 - $50,000",
+                    "$50,000 - $250,000",
+                    "More than $250,000"
+                ]
+            },
+            {
+                question: "What is your target timeline for the initial launch?",
+                options: [
+                    "Urgent (1-3 months)",
+                    "Standard (3-6 months)",
+                    "Flexible (6-12 months)",
+                    "Long-term (12+ months)"
+                ]
+            },
+            {
+                question: "Which platforms should the software run on?",
+                options: [
+                    "Web only (desktop browsers)",
+                    "Web and mobile (responsive design)",
+                    "Native mobile apps (iOS and Android)",
+                    "All platforms (web, iOS, Android)"
+                ]
+            },
+            {
+                question: "What is the most critical feature for your business?",
+                options: [
+                    "Real-time data processing",
+                    "User authentication and security",
+                    "Payment/transaction processing",
+                    "Reporting and analytics"
+                ]
+            },
+            {
+                question: "Do you need to integrate with any existing systems?",
+                options: [
+                    "No integrations needed",
+                    "Yes, with 1-2 third-party services",
+                    "Yes, with multiple systems (5+)",
+                    "Yes, and we need custom APIs"
+                ]
+            },
+            {
+                question: "What are your top 3 success metrics?",
+                options: [
+                    "User acquisition and growth",
+                    "User engagement and retention",
+                    "Revenue and profitability",
+                    "Customer satisfaction and support"
+                ]
+            },
+            {
+                question: "How important is data security and compliance?",
+                options: [
+                    "Standard industry practices",
+                    "High security (encryption, SSL)",
+                    "Very high (GDPR, HIPAA compliance)",
+                    "Highest (government/military grade)"
+                ]
+            },
+            {
+                question: "What type of database backend do you prefer?",
+                options: [
+                    "Traditional relational (SQL)",
+                    "NoSQL (MongoDB, Firebase)",
+                    "No preference - let developer decide",
+                    "Cloud-based solution (AWS, Azure)"
+                ]
+            },
+            {
+                question: "Do you have a preferred technology stack?",
+                options: [
+                    "Frontend: React, Vue, or Angular",
+                    "Backend: Node.js, Python, or Java",
+                    "No preference - best solution wins",
+                    "Specific tech already chosen"
+                ]
+            },
+            {
+                question: "What ongoing support and maintenance do you need?",
+                options: [
+                    "Minimal (bug fixes only)",
+                    "Standard (monthly updates and monitoring)",
+                    "Comprehensive (24/7 support)",
+                    "Managed service (full outsourcing)"
+                ]
+            },
+            {
+                question: "Do you need regular feature updates and enhancements?",
+                options: [
+                    "Build once, minimal changes",
+                    "Quarterly updates",
+                    "Monthly feature releases",
+                    "Continuous deployment (weekly+)"
+                ]
+            },
+            {
+                question: "What is your biggest concern about this project?",
+                options: [
+                    "Meeting the timeline",
+                    "Staying within budget",
+                    "Getting the right features",
+                    "Long-term scalability and growth"
+                ]
+            }
+        ];
+
+        // ========== MAIN FUNCTIONS ==========
+
+        async function initializeChat() {
+            enableInputs();
+            await addAIMessage("Hello! 👋 I'm your AI Business Analyst, and I'm here to help gather your software requirements. I'll ask you 15 simple, non-technical questions to understand your vision.\n\nLet's get started!");
+            showCurrentQuestion();
+        }
+
+        async function showCurrentQuestion() {
+            if (currentQuestion >= QUESTIONS.length) {
+                await generateTechnicalReport();
+                return;
+            }
+
+            const q = QUESTIONS[currentQuestion];
+            await addAIMessage(q.question);
+            showOptions(q.options);
+            updateProgress();
+        }
+
+        function showOptions(options) {
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'options-container';
+
+            options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = option;
+                btn.onclick = () => selectOption(option);
+                optionsContainer.appendChild(btn);
+            });
+
+            const questionCounter = document.createElement('div');
+            questionCounter.className = 'question-counter';
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${QUESTIONS.length}`;
+            optionsContainer.appendChild(questionCounter);
+
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.appendChild(optionsContainer);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function selectOption(option) {
+            disableInputs();
+            userResponses.push({
+                question: QUESTIONS[currentQuestion].question,
+                answer: option
+            });
+
+            await addUserMessage(option);
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            currentQuestion++;
+            showCurrentQuestion();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            disableInputs();
+            input.value = '';
+
+            userResponses.push({
+                question: QUESTIONS[currentQuestion - 1]?.question || "General feedback",
+                answer: message
+            });
+
+            await addUserMessage(message);
+            currentQuestion++;
+            showCurrentQuestion();
+        }
+
+        async function generateTechnicalReport() {
+            disableInputs();
+            await addAIMessage("Thank you for answering all the questions! 📊 Let me analyze your responses and generate a comprehensive Technical Requirements Report...");
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const report = await generateReportWithAI();
+            await displayReport(report);
+        }
+
+        async function generateReportWithAI() {
+            const responsesText = userResponses
+                .map(r => `Q: ${r.question}\nA: ${r.answer}`)
+                .join('\n\n');
+
+            const prompt = `Based on the following responses to software requirements gathering questions, generate a comprehensive Technical Requirement Report. Use proper technical terminology but keep it accessible.
+
+User Responses:
+${responsesText}
+
+Please structure the report with the following sections:
+1. Executive Summary
+2. Project Overview
+3. Functional Requirements
+4. Non-Functional Requirements
+5. System Architecture Recommendations
+6. Technology Stack Recommendations
+7. Timeline and Milestones
+8. Resource Requirements
+9. Risk Assessment
+10. Success Metrics and KPIs
+
+Format the output as a well-structured technical document with clear headings and bullet points.`;
+
+            try {
+                const response = await fetch(OPENAI_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: OPENAI_MODEL,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are an expert technical requirements specialist and solutions architect. Generate detailed, professional technical requirement documents.'
+                            },
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 2000
+                    })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Invalid OpenAI API key. Please check your configuration.');
+                    }
+                    throw new Error(`OpenAI API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error('Error generating report:', error);
+                return generateLocalReport();
+            }
+        }
+
+        function generateLocalReport() {
+            // Fallback report if API fails
+            const report = `
+# TECHNICAL REQUIREMENTS REPORT
+
+## Executive Summary
+This report outlines the comprehensive technical requirements for your software project based on the gathered business needs.
+
+## Project Overview
+Your software solution aims to serve as a modern, scalable application designed to meet specific business objectives with a focus on user experience and technical excellence.
+
+## Functional Requirements
+${userResponses.slice(0, 7).map((r, i) => `- Requirement ${i + 1}: ${r.answer}`).join('\n')}
+
+## Non-Functional Requirements
+- Performance: System should handle the specified user load with minimal latency
+- Security: Implement industry-standard security practices
+- Scalability: Architecture should support growth to the target user base
+- Reliability: System uptime target of 99.5% or higher
+
+## System Architecture Recommendations
+Based on your requirements, a microservices or modular monolithic architecture is recommended for flexibility and scalability.
+
+## Technology Stack Recommendations
+Frontend: Modern JavaScript framework (React, Vue.js, or Angular)
+Backend: Scalable server-side technology (Node.js, Python, or Java)
+Database: Combination of relational and NoSQL databases as needed
+Cloud Infrastructure: AWS, Azure, or Google Cloud for hosting
+
+## Timeline and Milestones
+Phase 1: Requirements and Design (4 weeks)
+Phase 2: MVP Development (8-12 weeks)
+Phase 3: Testing and QA (4 weeks)
+Phase 4: Launch Preparation (2 weeks)
+
+## Resource Requirements
+Recommended team: Scrum Master, Backend Engineers, Frontend Engineers, QA, DevOps Engineer
+
+## Risk Assessment
+Key risks include timeline constraints, scope creep, and integration challenges. Mitigation strategies should be established early.
+
+## Success Metrics and KPIs
+- User adoption rate
+- System performance metrics
+- User satisfaction scores
+- Business revenue/usage targets
+`;
+            return report;
+        }
+
+        async function displayReport(reportContent) {
+            const chatContainer = document.getElementById('chatContainer');
+            const reportDiv = document.createElement('div');
+            reportDiv.innerHTML = formatReportAsHTML(reportContent);
+            chatContainer.appendChild(reportDiv);
+
+            await addAIMessage("✅ Your Technical Requirements Report has been generated! You can now review the comprehensive document above.");
+
+            const exportContainer = document.createElement('div');
+            exportContainer.style.padding = '1rem';
+            exportContainer.innerHTML = `
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <button onclick="exportAsMarkdown()" style="background: var(--success-color); padding: 0.75rem 1rem; font-size: 0.95rem;">📄 Export as Markdown</button>
+                    <button onclick="exportAsJSON()" style="background: var(--success-color); padding: 0.75rem 1rem; font-size: 0.95rem;">📊 Export as JSON</button>
+                    <button onclick="printReport()" style="background: var(--success-color); padding: 0.75rem 1rem; font-size: 0.95rem;">🖨️ Print Report</button>
+                </div>
+            `;
+            chatContainer.appendChild(exportContainer);
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function formatReportAsHTML(content) {
+            let html = content
+                .replace(/# (.*?)(\n|$)/g, '<div class="report-section"><h3>$1</h3>')
+                .replace(/## (.*?)(\n|$)/g, '<div class="report-section"><h3>$1</h3>')
+                .replace(/### (.*?)(\n|$)/g, '<h4 style="color: var(--primary-color); margin-top: 1rem; margin-bottom: 0.5rem;">$1</h4>')
+                .replace(/\n- /g, '</p><ul><li>')
+                .replace(/\n\n/g, '</li></ul><p>')
+                .replace(/\n/g, '<br>');
+
+            html = html.replace(/<ul>.*?<\/ul>/gs, match => {
+                return match.replace(/<\/li><\/ul><p>/g, '</li></ul>');
+            });
+
+            return html + '</div>';
+        }
+
+        function exportAsMarkdown() {
+            const report = document.querySelector('[style*="report-section"]')?.textContent || 'Report not found';
+            const markdown = `# Software Requirements Report\n\nGenerated: ${new Date().toLocaleString()}\n\n${userResponses.map(r => `## ${r.question}\n${r.answer}`).join('\n\n')}`;
+            downloadFile(markdown, 'requirements-report.md', 'text/markdown');
+        }
+
+        function exportAsJSON() {
+            const data = {
+                generatedAt: new Date().toISOString(),
+                responses: userResponses,
+                projectMetadata: {
+                    questionCount: QUESTIONS.length,
+                    completedDate: new Date().toLocaleDateString()
+                }
+            };
+            downloadFile(JSON.stringify(data, null, 2), 'requirements-report.json', 'application/json');
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        // ========== UI HELPERS ==========
+
+        async function addAIMessage(content) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai';
+            messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function addUserMessage(content) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function updateProgress() {
+            const progress = (currentQuestion / QUESTIONS.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function enableInputs() {
+            document.getElementById('userInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+        }
+
+        function disableInputs() {
+            document.getElementById('userInput').disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+        }
+
+        // ========== INITIALIZATION ==========
+        window.addEventListener('load', initializeChat);
+
+        // Handle Enter key
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('userInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
